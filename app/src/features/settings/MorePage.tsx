@@ -39,7 +39,7 @@ export function MorePage() {
 
   return (
     <>
-      <TopBar title="Más" />
+      <TopBar title="Ajustes" />
       <main className="flex flex-col gap-6 px-4 py-4">
         <section className="rounded-xl border border-line bg-card p-4">
           <h2 className="font-semibold">{household.name}</h2>

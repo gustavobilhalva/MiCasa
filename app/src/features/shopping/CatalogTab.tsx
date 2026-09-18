@@ -1,4 +1,7 @@
-import { ChevronRight, Search } from 'lucide-react'
+import { ChevronRight, Search, Wand2 } from 'lucide-react'
+import { collection, doc, getDocs, query, serverTimestamp, where, writeBatch } from 'firebase/firestore'
+import { db } from '../../lib/firebase'
+import { guessStoreSector } from '../../lib/categorize'
 import { useMemo, useState } from 'react'
 import { useRequiredHousehold } from '../../hooks/useHousehold'
 import { normalize } from '../../lib/text'
@@ -6,8 +9,9 @@ import type { Product } from '../../types'
 import { ProductSheet } from './ProductSheet'
 
 export function CatalogTab({ products }: { products: Product[] }) {
-  const { storeSectors } = useRequiredHousehold()
+  const { household, storeSectors } = useRequiredHousehold()
   const [search, setSearch] = useState('')
+  const [reclassifying, setReclassifying] = useState(false)
   const [selected, setSelected] = useState<Product | null>(null)
 
   const filtered = useMemo(() => {
@@ -27,6 +31,28 @@ export function CatalogTab({ products }: { products: Product[] }) {
       .filter((g) => g.products.length > 0)
   }, [filtered, storeSectors])
 
+  const otrosId = storeSectors.find((s) => normalize(s.name) === 'otros')?.id
+  const inOtros = products.filter((p) => p.storeCategoryId === otrosId)
+  const reclassifiable = inOtros.filter((p) => guessStoreSector(p.name, storeSectors)?.id && guessStoreSector(p.name, storeSectors)!.id !== otrosId)
+
+  const reclassify = async () => {
+    setReclassifying(true)
+    try {
+      const batch = writeBatch(db)
+      for (const p of reclassifiable) {
+        const g = guessStoreSector(p.name, storeSectors)!
+        batch.update(doc(db, 'households', household.id, 'products', p.id), { storeCategoryId: g.id, updatedAt: serverTimestamp() })
+        const items = await getDocs(
+          query(collection(db, 'households', household.id, 'shoppingItems'), where('productId', '==', p.id), where('status', 'in', ['pending', 'checked'])),
+        )
+        items.docs.forEach((d) => batch.update(d.ref, { storeCategoryId: g.id, updatedAt: serverTimestamp() }))
+      }
+      await batch.commit()
+    } finally {
+      setReclassifying(false)
+    }
+  }
+
   return (
     <>
       <div className="sticky top-14 z-10 border-b border-line bg-surface/95 px-4 py-3 backdrop-blur">
@@ -40,6 +66,14 @@ export function CatalogTab({ products }: { products: Product[] }) {
           />
         </div>
       </div>
+
+      {reclassifiable.length > 0 && (
+        <div className="px-4 pt-3">
+          <button onClick={reclassify} disabled={reclassifying} className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-accent/40 bg-accent/10 px-3 text-sm text-accent">
+            <Wand2 size={16} /> Ubicar {reclassifiable.length} producto{reclassifiable.length === 1 ? '' : 's'} de "Otros" en su sector
+          </button>
+        </div>
+      )}
 
       {products.length === 0 ? (
         <p className="px-6 py-16 text-center text-sm text-muted">

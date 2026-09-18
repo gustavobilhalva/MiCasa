@@ -315,11 +315,13 @@ export interface Procedure {
 export interface MaintenanceTask {
   id: string
   name: string
-  intervalMonths: number
+  intervalMonths: number // 0 = una sola vez
   lastDoneAt?: Timestamp | null
   nextDueAt: Timestamp
   assigneeUid?: string | null
   notes?: string
+  important?: boolean
+  done?: boolean
 }
 
 export interface Warranty {

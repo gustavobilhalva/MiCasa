@@ -25,7 +25,9 @@ export function HouseholdProvider({ user, children }: { user: User; children: Re
 
   useEffect(() => {
     ensureUserDoc(user)
-    return onSnapshot(doc(db, 'users', user.uid), (snap) => {
+    // includeMetadataChanges: sin esto Firestore no vuelve a avisar cuando el servidor confirma
+    // la escritura local, y householdId quedaba sin setear hasta recargar.
+    return onSnapshot(doc(db, 'users', user.uid), { includeMetadataChanges: true }, (snap) => {
       const data = snap.exists() ? (snap.data() as UserDoc) : null
       setUserDoc(data)
       // Ignore optimistic local writes: subcollection listeners must not start before the

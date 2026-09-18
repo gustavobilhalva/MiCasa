@@ -125,15 +125,22 @@ export const deleteProcedure = (hid: string, id: string) => deleteDoc(doc(hh(hid
 
 export interface MaintenanceInput {
   name: string
-  intervalMonths: number
+  intervalMonths: number // 0 = una sola vez
   lastDoneAt?: Date | null
   nextDueAt?: Date
   assigneeUid?: string | null
   notes?: string
+  important?: boolean
 }
 
 export async function saveMaintenance(hid: string, uid: string, input: MaintenanceInput, id?: string) {
-  const next = input.nextDueAt ?? (input.lastDoneAt ? addMonths(input.lastDoneAt, input.intervalMonths) : addMonths(new Date(), input.intervalMonths))
+  const next =
+    input.nextDueAt ??
+    (input.intervalMonths > 0
+      ? input.lastDoneAt
+        ? addMonths(input.lastDoneAt, input.intervalMonths)
+        : addMonths(new Date(), input.intervalMonths)
+      : new Date())
   return upsert(
     hid,
     'maintenance',
@@ -145,6 +152,8 @@ export async function saveMaintenance(hid: string, uid: string, input: Maintenan
       nextDueAt: Timestamp.fromDate(next),
       assigneeUid: input.assigneeUid ?? null,
       notes: input.notes,
+      important: input.important ?? false,
+      done: false,
     },
     id,
   )
@@ -152,11 +161,15 @@ export async function saveMaintenance(hid: string, uid: string, input: Maintenan
 
 export async function markMaintenanceDone(hid: string, task: MaintenanceTask) {
   const now = new Date()
-  await updateDoc(doc(hh(hid), 'maintenance', task.id), {
-    lastDoneAt: Timestamp.fromDate(now),
-    nextDueAt: Timestamp.fromDate(addMonths(now, task.intervalMonths)),
-    updatedAt: serverTimestamp(),
-  })
+  if (task.intervalMonths > 0) {
+    await updateDoc(doc(hh(hid), 'maintenance', task.id), {
+      lastDoneAt: Timestamp.fromDate(now),
+      nextDueAt: Timestamp.fromDate(addMonths(now, task.intervalMonths)),
+      updatedAt: serverTimestamp(),
+    })
+  } else {
+    await updateDoc(doc(hh(hid), 'maintenance', task.id), { done: true, lastDoneAt: Timestamp.fromDate(now), updatedAt: serverTimestamp() })
+  }
 }
 
 export const deleteMaintenance = (hid: string, id: string) => deleteDoc(doc(hh(hid), 'maintenance', id))

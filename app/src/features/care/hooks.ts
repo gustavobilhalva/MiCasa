@@ -118,8 +118,9 @@ export function useUpcomingCare(horizonDays = 30) {
       out.push({ key: `p_${r.id}`, kind: 'procedure', label: r.title, dueAt: d, days: differenceInCalendarDays(d, today), to: '/tramites', assigneeUid: r.assigneeUid })
     }
     for (const r of maint.data) {
+      if (r.done) continue
       const d = r.nextDueAt.toDate()
-      out.push({ key: `m_${r.id}`, kind: 'maintenance', label: r.name, dueAt: d, days: differenceInCalendarDays(d, today), to: '/casa', assigneeUid: r.assigneeUid })
+      out.push({ key: `m_${r.id}`, kind: 'maintenance', label: `${r.important ? '❗ ' : ''}${r.name}`, dueAt: d, days: differenceInCalendarDays(d, today), to: '/casa', assigneeUid: r.assigneeUid })
     }
     for (const r of warr.data) {
       const d = r.expiresAt.toDate()

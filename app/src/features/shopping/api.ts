@@ -26,9 +26,12 @@ interface AddItemInput {
   qty?: string
   storeCategoryId: string
   product?: Product
+  preferredBrand?: string
+  notes?: string
+  defaultQty?: string
 }
 
-export async function addItem({ householdId, uid, name, qty, storeCategoryId, product }: AddItemInput) {
+export async function addItem({ householdId, uid, name, qty, storeCategoryId, product, preferredBrand, notes, defaultQty }: AddItemInput) {
   const hh = householdRef(householdId)
   const batch = writeBatch(db)
   const now = serverTimestamp()
@@ -43,6 +46,9 @@ export async function addItem({ householdId, uid, name, qty, storeCategoryId, pr
       nameNormalized: normalize(cleanName),
       storeCategoryId,
       timesPurchased: 0,
+      ...(preferredBrand ? { preferredBrand } : {}),
+      ...(notes ? { notes } : {}),
+      ...(defaultQty ? { defaultQty } : {}),
       createdBy: uid,
       createdAt: now,
       updatedAt: now,

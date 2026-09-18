@@ -9,7 +9,7 @@ import { useRequiredHousehold } from '../../hooks/useHousehold'
 import { MAINTENANCE_SUGGESTIONS } from '../../lib/defaults'
 import { fmtDate, fromInputDate, toInputDate } from '../../lib/format'
 import type { MaintenanceTask, Warranty } from '../../types'
-import { Field, MemberDot, MemberPicker } from '../finance/ui'
+import { Chips, Field, MemberDot, MemberPicker } from '../finance/ui'
 import { deleteMaintenance, deleteWarranty, markMaintenanceDone, saveMaintenance, saveWarranty } from './api'
 import { ContactsSection } from './ContactsSection'
 import { useMaintenance, useWarranties } from './hooks'
@@ -51,35 +51,64 @@ function MaintenanceTab() {
   const { data: tasks } = useMaintenance()
   const [editing, setEditing] = useState<MaintenanceTask | null | 'new'>(null)
   const today = new Date()
+  const pending = tasks.filter((t) => !t.done)
+  const finished = tasks.filter((t) => t.done)
+
+  const Row = ({ t }: { t: MaintenanceTask }) => {
+    const days = differenceInCalendarDays(t.nextDueAt.toDate(), today)
+    return (
+      <li className={`flex min-h-16 items-center gap-3 px-4 ${t.done ? 'opacity-60' : ''}`}>
+        <MemberDot uid={t.assigneeUid} size="md" />
+        <button onClick={() => setEditing(t)} className="flex-1 py-2 text-left">
+          <p className={t.done ? 'line-through' : ''}>
+            {t.important && !t.done && <span className="mr-1 text-danger">❗</span>}
+            {t.name}
+          </p>
+          <p className={`text-xs ${t.done ? 'text-muted' : days < 0 ? 'text-danger' : days <= 7 ? 'text-warn' : 'text-muted'}`}>
+            {t.done
+              ? `Hecho ${t.lastDoneAt ? fmtDate(t.lastDoneAt.toDate(), 'd MMM yyyy') : ''}`
+              : days < 0
+                ? `Vencido hace ${-days} días`
+                : days === 0
+                  ? 'Hoy'
+                  : `En ${days} días · ${fmtDate(t.nextDueAt.toDate(), 'd MMM yyyy')}`}
+            <span className="text-muted"> · {t.intervalMonths > 0 ? `cada ${t.intervalMonths} meses` : 'una vez'}</span>
+          </p>
+        </button>
+        {!t.done && (
+          <button onClick={() => markMaintenanceDone(household.id, t)} className="flex min-h-10 items-center gap-1 rounded-full bg-accent px-3 text-sm font-medium text-white">
+            <Check size={16} /> Hecho
+          </button>
+        )}
+      </li>
+    )
+  }
 
   return (
     <main className="pb-28">
       {tasks.length === 0 ? (
         <div className="px-6 py-12 text-center">
-          <p className="font-medium">Sin tareas de mantenimiento</p>
-          <p className="mt-1 text-sm text-muted">Filtro de agua, aire acondicionado, caldera, detector de humo… con intervalo y responsable.</p>
+          <p className="font-medium">Sin tareas de la casa</p>
+          <p className="mt-1 text-sm text-muted">Arreglos puntuales (cambiar la canilla) o periódicos (filtro de agua, aire, caldera) con responsable y fecha.</p>
         </div>
       ) : (
-        <ul className="divide-y divide-line bg-card">
-          {tasks.map((t) => {
-            const days = differenceInCalendarDays(t.nextDueAt.toDate(), today)
-            return (
-              <li key={t.id} className="flex min-h-16 items-center gap-3 px-4">
-                <MemberDot uid={t.assigneeUid} size="md" />
-                <button onClick={() => setEditing(t)} className="flex-1 py-2 text-left">
-                  <p>{t.name}</p>
-                  <p className={`text-xs ${days < 0 ? 'text-danger' : days <= 7 ? 'text-warn' : 'text-muted'}`}>
-                    {days < 0 ? `Vencido hace ${-days} días` : days === 0 ? 'Hoy' : `En ${days} días · ${fmtDate(t.nextDueAt.toDate(), 'd MMM yyyy')}`}
-                    <span className="text-muted"> · cada {t.intervalMonths} meses</span>
-                  </p>
-                </button>
-                <button onClick={() => markMaintenanceDone(household.id, t)} className="flex min-h-10 items-center gap-1 rounded-full bg-accent px-3 text-sm font-medium text-white">
-                  <Check size={16} /> Hecho
-                </button>
-              </li>
-            )
-          })}
-        </ul>
+        <>
+          <ul className="divide-y divide-line bg-card">
+            {pending.map((t) => (
+              <Row key={t.id} t={t} />
+            ))}
+          </ul>
+          {finished.length > 0 && (
+            <details className="mt-4 px-4">
+              <summary className="text-sm text-muted">Hechas ({finished.length})</summary>
+              <ul className="mt-2 divide-y divide-line rounded-xl border border-line bg-card">
+                {finished.map((t) => (
+                  <Row key={t.id} t={t} />
+                ))}
+              </ul>
+            </details>
+          )}
+        </>
       )}
       <button onClick={() => setEditing('new')} aria-label="Nueva tarea" className="fixed bottom-20 right-4 z-20 flex size-14 items-center justify-center rounded-full bg-accent text-white shadow-lg md:bottom-8">
         <Plus size={28} />
@@ -94,8 +123,11 @@ function MaintenanceTab() {
 function MaintenanceForm({ task, onClose }: { task: MaintenanceTask | null; onClose: () => void }) {
   const { household, user } = useRequiredHousehold()
   const [name, setName] = useState(task?.name ?? '')
-  const [interval, setInterval] = useState(String(task?.intervalMonths ?? 6))
+  const [mode, setMode] = useState<'once' | 'repeat'>(task ? (task.intervalMonths > 0 ? 'repeat' : 'once') : 'once')
+  const [interval, setInterval] = useState(String(task?.intervalMonths || 6))
   const [lastDone, setLastDone] = useState(task?.lastDoneAt ? toInputDate(task.lastDoneAt.toDate()) : '')
+  const [dueDate, setDueDate] = useState(task && task.intervalMonths === 0 ? toInputDate(task.nextDueAt.toDate()) : toInputDate(new Date()))
+  const [important, setImportant] = useState(task?.important ?? false)
   const [assignee, setAssignee] = useState<string | null>(task?.assigneeUid ?? null)
   const [notes, setNotes] = useState(task?.notes ?? '')
   const [busy, setBusy] = useState(false)
@@ -105,16 +137,18 @@ function MaintenanceForm({ task, onClose }: { task: MaintenanceTask | null; onCl
     if (!name.trim()) return
     setBusy(true)
     try {
+      const repeat = mode === 'repeat'
       await saveMaintenance(
         household.id,
         user.uid,
         {
           name: name.trim(),
-          intervalMonths: Math.max(1, Number(interval) || 1),
-          lastDoneAt: lastDone ? fromInputDate(lastDone) : null,
-          nextDueAt: task && !lastDone ? task.nextDueAt.toDate() : undefined,
+          intervalMonths: repeat ? Math.max(1, Number(interval) || 1) : 0,
+          lastDoneAt: repeat && lastDone ? fromInputDate(lastDone) : null,
+          nextDueAt: repeat ? (task && !lastDone ? task.nextDueAt.toDate() : undefined) : fromInputDate(dueDate),
           assigneeUid: assignee,
           notes: notes.trim() || undefined,
+          important,
         },
         task?.id,
       )
@@ -126,32 +160,54 @@ function MaintenanceForm({ task, onClose }: { task: MaintenanceTask | null; onCl
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-4">
-      {!task && (
-        <div className="flex flex-wrap gap-2">
-          {MAINTENANCE_SUGGESTIONS.map((s) => (
-            <button key={s.name} type="button" onClick={() => { setName(s.name); setInterval(String(s.intervalMonths)) }} className="min-h-9 rounded-full border border-line bg-card px-3 text-xs">
-              <Wrench size={12} className="mr-1 inline" />
-              {s.name}
-            </button>
-          ))}
-        </div>
-      )}
       <Field label="Tarea">
-        <Input value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Cambiar la canilla de la cocina" required autoFocus />
       </Field>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Cada (meses)">
-          <Input inputMode="numeric" value={interval} onChange={(e) => setInterval(e.target.value)} />
+      <Field label="Frecuencia">
+        <Chips
+          options={[
+            { id: 'once', label: 'Una sola vez' },
+            { id: 'repeat', label: 'Se repite' },
+          ]}
+          value={mode}
+          onChange={setMode}
+        />
+      </Field>
+      {mode === 'once' ? (
+        <Field label="Hacer antes del">
+          <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} required />
         </Field>
-        <Field label="Última vez" hint="Para calcular la próxima">
-          <Input type="date" value={lastDone} onChange={(e) => setLastDone(e.target.value)} />
-        </Field>
-      </div>
+      ) : (
+        <>
+          {!task && (
+            <div className="flex flex-wrap gap-2">
+              {MAINTENANCE_SUGGESTIONS.map((s) => (
+                <button key={s.name} type="button" onClick={() => { setName(s.name); setInterval(String(s.intervalMonths)) }} className="min-h-9 rounded-full border border-line bg-card px-3 text-xs">
+                  <Wrench size={12} className="mr-1 inline" />
+                  {s.name}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Cada (meses)">
+              <Input inputMode="numeric" value={interval} onChange={(e) => setInterval(e.target.value)} />
+            </Field>
+            <Field label="Última vez" hint="Para calcular la próxima">
+              <Input type="date" value={lastDone} onChange={(e) => setLastDone(e.target.value)} />
+            </Field>
+          </div>
+        </>
+      )}
+      <label className="flex items-center gap-3">
+        <input type="checkbox" checked={important} onChange={(e) => setImportant(e.target.checked)} className="size-5 accent-accent" />
+        <span className="text-sm">Importante / obligatoria (se destaca en Hoy y en la lista)</span>
+      </label>
       <Field label="Responsable">
         <MemberPicker value={assignee} onChange={setAssignee} allowNone />
       </Field>
       <Field label="Notas">
-        <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Modelo del filtro, técnico de confianza…" />
+        <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Modelo, presupuesto, técnico de confianza…" />
       </Field>
       <Button type="submit" disabled={busy}>
         Guardar
