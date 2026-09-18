@@ -21,6 +21,7 @@ export function BalanceTab({ month, expenses }: { month: string; expenses: Expen
       share.set(m.id, 0)
     }
     for (const e of expenses) {
+      if (e.imported) continue
       paid.set(e.paidBy, (paid.get(e.paidBy) ?? 0) + e.amount)
       const split = e.split ?? defaultSplit
       for (const [uid, pct] of Object.entries(split)) {

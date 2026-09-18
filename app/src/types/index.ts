@@ -121,6 +121,7 @@ export interface Expense {
   serviceInstanceId?: string
   fundId?: string
   settlement?: boolean
+  imported?: boolean // cargado desde la planilla; no entra en el balance entre miembros
   createdAt: Timestamp
 }
 

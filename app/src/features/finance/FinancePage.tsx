@@ -158,7 +158,7 @@ function MovesTab({ expenses, loading, total }: { expenses: Expense[]; loading: 
                         {e.note && <span className="ml-2 text-sm text-muted">{e.note}</span>}
                       </p>
                       <p className="text-xs text-muted">
-                        {methodLabel(e.method)}
+                        {e.imported ? 'Planilla' : methodLabel(e.method)}
                         {e.installments && ` · ${e.installments.count} cuotas`}
                       </p>
                     </div>
