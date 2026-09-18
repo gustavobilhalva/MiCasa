@@ -11,6 +11,7 @@ import { PAYMENT_METHODS, SERVICE_TYPES } from '../../lib/defaults'
 import { fmtDate, money, monthKey, monthLabel, parseAmount, shiftMonth } from '../../lib/format'
 import type { PaymentMethod, Service, ServiceFrequency, ServiceInstance, ServiceType } from '../../types'
 import { assignInstance, deleteService, ensureServiceInstances, payInstance, saveService, skipInstance } from './api'
+import { CategoryPicker } from './CategoryPicker'
 import { useCards, useServiceInstances, useServices } from './hooks'
 import { AmountInput, Chips, Field, MemberDot, MemberPicker, MonthNav } from './ui'
 
@@ -158,7 +159,7 @@ function ServiceForm({ service, instance, onClose }: { service: Service | null; 
   const [assignee, setAssignee] = useState<string | null>(service?.defaultAssigneeUid ?? null)
   const [reminderDays, setReminderDays] = useState(String(service?.reminderDaysBefore ?? 3))
   const [categoryId, setCategoryId] = useState<string | null>(
-    service?.expenseCategoryId ?? expenseCategories.find((c) => c.name === 'Servicios')?.id ?? null,
+    service?.expenseCategoryId ?? expenseCategories.find((c) => c.groupKey === 'servicios' && c.name === 'Otros')?.id ?? null,
   )
   const [busy, setBusy] = useState(false)
 
@@ -229,7 +230,7 @@ function ServiceForm({ service, instance, onClose }: { service: Service | null; 
         <MemberPicker value={assignee} onChange={setAssignee} allowNone />
       </Field>
       <Field label="Categoría de gasto">
-        <Chips options={expenseCategories.map((c) => ({ id: c.id, label: `${c.icon ?? ''} ${c.name}` }))} value={categoryId} onChange={setCategoryId} />
+        <CategoryPicker categories={expenseCategories} value={categoryId} onChange={setCategoryId} />
       </Field>
       <Button type="submit" disabled={busy}>
         Guardar

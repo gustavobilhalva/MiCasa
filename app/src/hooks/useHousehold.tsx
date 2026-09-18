@@ -13,6 +13,7 @@ interface HouseholdContextValue {
   members: Member[]
   storeSectors: Category[]
   expenseCategories: Category[]
+  incomeCategories: Category[]
   loading: boolean
 }
 
@@ -74,6 +75,7 @@ export function HouseholdProvider({ user, children }: { user: User; children: Re
   }, [categories, household])
 
   const expenseCategories = useMemo(() => categories.filter((c) => c.kind === 'expense'), [categories])
+  const incomeCategories = useMemo(() => categories.filter((c) => c.kind === 'income'), [categories])
 
   const value: HouseholdContextValue = {
     user,
@@ -82,6 +84,7 @@ export function HouseholdProvider({ user, children }: { user: User; children: Re
     members,
     storeSectors,
     expenseCategories,
+    incomeCategories,
     loading: userDoc === undefined || (householdId !== null && household === undefined),
   }
 

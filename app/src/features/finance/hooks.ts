@@ -4,7 +4,7 @@ import { useCollection } from '../../hooks/useCollection'
 import { useRequiredHousehold } from '../../hooks/useHousehold'
 import { db } from '../../lib/firebase'
 import { monthRange } from '../../lib/format'
-import type { Budget, Card, Contribution, Expense, Fund, Installment, Service, ServiceInstance } from '../../types'
+import type { Budget, Card, Contribution, Expense, Fund, Income, Installment, Service, ServiceInstance } from '../../types'
 
 const col = (hid: string, name: string) => collection(db, 'households', hid, name)
 
@@ -87,4 +87,40 @@ export function useEffectiveSplit() {
     const share = ids.length ? 100 / ids.length : 100
     return Object.fromEntries(ids.map((id) => [id, share]))
   }, [household.settings.defaultSplit, members])
+}
+
+export function useIncomes(month: string) {
+  const { household } = useRequiredHousehold()
+  const q = useMemo(() => {
+    const { start, end } = monthRange(month)
+    return query(
+      col(household.id, 'incomes'),
+      where('date', '>=', Timestamp.fromDate(start)),
+      where('date', '<', Timestamp.fromDate(end)),
+      orderBy('date', 'desc'),
+    )
+  }, [household.id, month])
+  return useCollection<Income>(q)
+}
+
+function yearRange(year: number) {
+  return { start: new Date(year, 0, 1), end: new Date(year + 1, 0, 1) }
+}
+
+export function useExpensesYear(year: number) {
+  const { household } = useRequiredHousehold()
+  const q = useMemo(() => {
+    const { start, end } = yearRange(year)
+    return query(col(household.id, 'expenses'), where('date', '>=', Timestamp.fromDate(start)), where('date', '<', Timestamp.fromDate(end)), orderBy('date'))
+  }, [household.id, year])
+  return useCollection<Expense>(q)
+}
+
+export function useIncomesYear(year: number) {
+  const { household } = useRequiredHousehold()
+  const q = useMemo(() => {
+    const { start, end } = yearRange(year)
+    return query(col(household.id, 'incomes'), where('date', '>=', Timestamp.fromDate(start)), where('date', '<', Timestamp.fromDate(end)), orderBy('date'))
+  }, [household.id, year])
+  return useCollection<Income>(q)
 }

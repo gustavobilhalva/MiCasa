@@ -275,3 +275,32 @@ export async function archiveFund(householdId: string, fundId: string, archived:
 export async function removeFund(householdId: string, fundId: string) {
   await deleteDoc(doc(hh(householdId), 'funds', fundId))
 }
+
+// ---------- Ingresos ----------
+
+export interface IncomeInput {
+  amount: number
+  categoryId: string
+  byUid: string
+  date: Date
+  note?: string
+}
+
+export async function addIncome(householdId: string, uid: string, input: IncomeInput, id?: string) {
+  const ref = id ? doc(hh(householdId), 'incomes', id) : doc(collection(hh(householdId), 'incomes'))
+  const data = {
+    amount: input.amount,
+    categoryId: input.categoryId,
+    byUid: input.byUid,
+    date: Timestamp.fromDate(input.date),
+    note: input.note,
+    updatedAt: serverTimestamp(),
+  }
+  if (id) await setDoc(ref, patch(data), { merge: true })
+  else await setDoc(ref, clean({ ...data, createdBy: uid, createdAt: serverTimestamp() }))
+  return ref.id
+}
+
+export async function deleteIncome(householdId: string, id: string) {
+  await deleteDoc(doc(hh(householdId), 'incomes', id))
+}

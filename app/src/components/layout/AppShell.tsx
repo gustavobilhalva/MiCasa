@@ -6,7 +6,7 @@ import { listenForegroundMessages } from '../../lib/messaging'
 const NAV = [
   { to: '/', label: 'Hoy', icon: Home, end: true },
   { to: '/super', label: 'Súper', icon: ShoppingCart },
-  { to: '/gastos', label: 'Gastos', icon: Wallet },
+  { to: '/gastos', label: 'Finanzas', icon: Wallet },
   { to: '/agenda', label: 'Agenda', icon: Calendar },
   { to: '/notas', label: 'Notas', icon: NotebookPen },
   { to: '/menus', label: 'Menús', icon: UtensilsCrossed },

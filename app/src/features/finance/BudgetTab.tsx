@@ -20,10 +20,24 @@ export function BudgetTab({ month, expenses }: { month: string; expenses: Expens
     return map
   }, [expenses])
 
-  const rows = expenseCategories
-    .filter((c) => c.name !== 'Ajuste entre nosotros')
-    .map((c) => ({ cat: c, spent: spentByCat.get(c.id) ?? 0, limit: budget?.limits?.[c.id] }))
-    .sort((a, b) => (b.limit ? 1 : 0) - (a.limit ? 1 : 0) || b.spent - a.spent)
+  // Presupuesto por grupo (Niños, Deuda, Ocio…): se suma lo gastado en todas sus subcategorías.
+  const rows = useMemo(() => {
+    const groups = new Map<string, { cat: Category; spent: number }>()
+    for (const c of expenseCategories) {
+      if (c.hidden || c.legacy) continue
+      const key = c.groupKey ?? c.id
+      if (!groups.has(key)) groups.set(key, { cat: { ...c, id: key, name: c.group ?? c.name }, spent: 0 })
+      groups.get(key)!.spent += spentByCat.get(c.id) ?? 0
+    }
+    for (const c of expenseCategories) {
+      if (!c.legacy) continue
+      const spent = spentByCat.get(c.id) ?? 0
+      if (spent > 0) groups.set(c.id, { cat: c, spent })
+    }
+    return [...groups.values()]
+      .map((g) => ({ ...g, limit: budget?.limits?.[g.cat.id] }))
+      .sort((a, b) => (b.limit ? 1 : 0) - (a.limit ? 1 : 0) || b.spent - a.spent)
+  }, [expenseCategories, spentByCat, budget])
 
   const totalLimit = rows.reduce((s, r) => s + (r.limit ?? 0), 0)
   const totalSpentBudgeted = rows.filter((r) => r.limit).reduce((s, r) => s + r.spent, 0)
@@ -53,7 +67,7 @@ export function BudgetTab({ month, expenses }: { month: string; expenses: Expens
           <ProgressBar value={totalSpentBudgeted} max={totalLimit} />
         </div>
       )}
-      <p className="px-4 pb-2 text-xs text-muted">Tocá una categoría para ponerle un tope mensual.</p>
+      <p className="px-4 pb-2 text-xs text-muted">Tocá un grupo para ponerle un tope mensual.</p>
       <ul className="divide-y divide-line bg-card">
         {rows.map(({ cat, spent, limit }) => (
           <li key={cat.id}>

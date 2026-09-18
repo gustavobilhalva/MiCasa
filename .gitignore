@@ -12,3 +12,6 @@ storage-debug.log
 .firebase/
 .DS_Store
 Thumbs.db
+
+# planilla de referencia del usuario, no va al repo
+*.xlsx

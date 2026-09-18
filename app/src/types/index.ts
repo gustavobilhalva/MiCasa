@@ -40,7 +40,7 @@ export interface Invite {
   usedBy: string | null
 }
 
-export type CategoryKind = 'store' | 'expense' | 'event'
+export type CategoryKind = 'store' | 'expense' | 'income' | 'event'
 
 export interface Category {
   id: string
@@ -48,6 +48,20 @@ export interface Category {
   name: string
   icon?: string
   order: number
+  group?: string // grupo (Niños, Deuda, Ocio…) para gastos e ingresos
+  groupKey?: string
+  legacy?: boolean // categoría plana anterior; se muestra en gastos viejos pero no se ofrece
+  hidden?: boolean
+}
+
+export interface Income {
+  id: string
+  amount: number
+  categoryId: string
+  byUid: string
+  date: Timestamp
+  note?: string
+  createdAt: Timestamp
 }
 
 export interface Product {

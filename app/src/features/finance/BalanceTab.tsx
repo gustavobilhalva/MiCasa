@@ -3,6 +3,7 @@ import { Button } from '../../components/ui/Button'
 import { useRequiredHousehold } from '../../hooks/useHousehold'
 import { money } from '../../lib/format'
 import type { Expense } from '../../types'
+import { SETTLEMENT_CATEGORY_ID } from '../../lib/financeCategories'
 import { addExpense } from './api'
 import { useEffectiveSplit } from './hooks'
 import { MemberDot } from './ui'
@@ -41,7 +42,7 @@ export function BalanceTab({ month, expenses }: { month: string; expenses: Expen
 
   const settle = async () => {
     if (!creditor || !debtor) return
-    const cat = expenseCategories.find((c) => c.name === 'Ajuste entre nosotros') ?? expenseCategories[0]
+    const cat = expenseCategories.find((c) => c.id === SETTLEMENT_CATEGORY_ID) ?? expenseCategories.find((c) => c.name === 'Ajuste entre nosotros') ?? expenseCategories[0]
     setBusy(true)
     try {
       await addExpense(household.id, user.uid, {

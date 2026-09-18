@@ -9,6 +9,7 @@ import { fromInputDate, money, parseAmount, toInputDate } from '../../lib/format
 import { buildInstallmentPlan } from '../../lib/installments'
 import type { PaymentMethod } from '../../types'
 import { addExpense } from './api'
+import { CategoryPicker } from './CategoryPicker'
 import { useCards } from './hooks'
 import { AmountInput, Chips, Field, MemberPicker } from './ui'
 
@@ -45,8 +46,6 @@ function ExpenseForm({ onClose }: { onClose: () => void }) {
     return buildInstallmentPlan({ total: parsedAmount, count, surchargePct, purchaseDate: fromInputDate(date), closingDay: card.closingDay, dueDay: card.dueDay })
   }, [method, card, parsedAmount, count, surchargePct, date])
 
-  const categories = expenseCategories.filter((c) => c.name !== 'Ajuste entre nosotros')
-
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     if (!parsedAmount || parsedAmount <= 0) return setError('Ingresá un monto.')
@@ -80,7 +79,7 @@ function ExpenseForm({ onClose }: { onClose: () => void }) {
       <AmountInput value={amount} onChange={setAmount} autoFocus />
 
       <Field label="Categoría">
-        <Chips options={categories.map((c) => ({ id: c.id, label: `${c.icon ?? ''} ${c.name}` }))} value={categoryId} onChange={setCategoryId} />
+        <CategoryPicker categories={expenseCategories} value={categoryId} onChange={setCategoryId} />
       </Field>
 
       <Field label="Pagó">
