@@ -52,12 +52,12 @@ Objetivo: los dos pueden entrar, estar en el mismo hogar y usar la lista en tiem
 
 Pendiente menor: editar gasto existente, configurar reparto por defecto distinto de 50/50, vista resumen de suscripciones (Fase 6).
 
-## Fase 3 · Motor de recordatorios + Hoy — código listo, falta configurar secretos
+## Fase 3 · Motor de recordatorios + Hoy — entregada (v1)
 
 - [x] El job lee directamente cada colección (servicios, cuotas, salud, documentos, trámites, mantenimiento, garantías, eventos, notas); no hace falta colección `reminders` aparte
 - [x] Job `jobs/src/reminders.ts` + workflow de GitHub Actions (09:00 y 18:00 ART, más ejecución manual con dry run)
-- [x] Push: permisos, tokens, Service Worker (`firebase-messaging-sw.js`), envío desde el job, toast en primer plano. Falta: clave VAPID
-- [x] Email vía Gmail SMTP (Nodemailer): un resumen por persona y por corrida. Falta: app password
+- [x] Push: permisos, tokens, Service Worker (`firebase-messaging-sw.js`), envío desde el job, toast en primer plano. VAPID configurada
+- [x] Email vía Gmail SMTP (Nodemailer): un resumen por persona y por corrida. app password configurada
 - [x] Preferencias de notificación por usuario (Más → Notificaciones)
 - [ ] Productos recurrentes (intervalo, auto-agregar a lista, sugerencia por historial) — pendiente
 - [x] Panel Hoy completo (eventos, notas, vencimientos, menú, accesos rápidos)

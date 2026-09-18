@@ -47,7 +47,7 @@ VITE_FIREBASE_VAPID_KEY=
 
 ## 7. Recordatorios push + email (GitHub Actions) — Fase 3
 
-Repo: https://github.com/gustavobilhalva/MiCasa (privado). El workflow `.github/workflows/reminders.yml` corre `jobs/src/reminders.ts` a las 09:00 y 18:00 (hora Argentina) y se puede lanzar a mano desde la pestaña Actions ("Run workflow", con opción *dry run*).
+Repo: https://github.com/gustavobilhalva/MiCasa (público: GitHub bloqueaba Actions en privado por facturación). El workflow `.github/workflows/reminders.yml` corre `jobs/src/reminders.ts` a las 09:00 y 18:00 (hora Argentina) y se puede lanzar a mano desde la pestaña Actions ("Run workflow", con opción *dry run*).
 
 ### 7.1 Service account de Firebase (obligatorio)
 
@@ -125,9 +125,9 @@ Proyecto real: **`nuestra-casa-2cb72`** (display name "Nuestra-Casa").
 - [ ] Auth con Google habilitado — https://console.firebase.google.com/project/nuestra-casa-2cb72/authentication/providers
 - [ ] Firestore en `southamerica-east1` — https://console.firebase.google.com/project/nuestra-casa-2cb72/firestore
 - [x] Storage: no se usa (Supabase en Fase 5)
-- [ ] Clave VAPID generada y cargada en `.env.local` (ver 7.3)
+- [x] Clave VAPID generada y cargada en `.env.local` (ver 7.3)
 - [x] App web registrada (`1:597934237624:web:deccf13e97d717c2af514d`), `app/.env.local` completado
-- [ ] Service account + secretos en GitHub (ver 7.1 y 7.2)
+- [x] Service account + secretos en GitHub (ver 7.1 y 7.2)
 - [x] `firebase.json`, `.firebaserc`, reglas e índices en el repo
 - [ ] Reglas desplegadas: `firebase deploy --only firestore`
 - [ ] Emuladores arrancan sin error
