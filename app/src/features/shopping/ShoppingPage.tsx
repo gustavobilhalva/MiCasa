@@ -1,9 +1,9 @@
-import { ShoppingBag } from 'lucide-react'
+import { Plus, ShoppingBag } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { TopBar } from '../../components/layout/TopBar'
 import { useRequiredHousehold } from '../../hooks/useHousehold'
-import { AddItemBar } from './AddItemBar'
+import { AddItemSheet } from './AddItemSheet'
 import { archiveChecked } from './api'
 import { PantryTab } from '../meals/PantryTab'
 import { CatalogTab } from './CatalogTab'
@@ -17,6 +17,7 @@ export function ShoppingPage() {
   const { sections, pendingCount, checkedCount, loading } = useShoppingList()
   const { data: products } = useProducts()
   const [tab, setTab] = useState<Tab>('list')
+  const [adding, setAdding] = useState(false)
 
   const productsById = useMemo(() => new Map(products.map((p) => [p.id, p])), [products])
 
@@ -45,20 +46,19 @@ export function ShoppingPage() {
         <PantryTab />
       ) : (
         <>
-          <AddItemBar />
           {loading ? (
             <p className="p-6 text-center text-muted">Cargando…</p>
           ) : sections.length === 0 ? (
             <div className="flex flex-col items-center gap-2 px-6 py-16 text-center">
               <ShoppingBag size={40} className="text-muted" />
               <p className="font-medium">La lista está vacía</p>
-              <p className="text-sm text-muted">Escribí un producto arriba para empezar.</p>
+              <p className="text-sm text-muted">Tocá + para agregar el primer producto.</p>
             </div>
           ) : (
             <div className="pb-24">
               {sections.map(({ sector, items }) => (
                 <section key={sector.id}>
-                  <h2 className="sticky top-[7.25rem] z-[5] bg-surface px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted">
+                  <h2 className="sticky top-14 z-[5] bg-surface px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted">
                     {sector.icon} {sector.name}
                   </h2>
                   <ul className="divide-y divide-line bg-card">
@@ -85,6 +85,14 @@ export function ShoppingPage() {
               )}
             </div>
           )}
+          <button
+            onClick={() => setAdding(true)}
+            aria-label="Agregar producto"
+            className="fixed bottom-20 right-4 z-20 flex size-14 items-center justify-center rounded-full bg-accent text-white shadow-lg md:bottom-8"
+          >
+            <Plus size={28} />
+          </button>
+          <AddItemSheet open={adding} onClose={() => setAdding(false)} />
         </>
       )}
     </>
