@@ -4,6 +4,7 @@ import { Sheet } from '../../components/layout/Sheet'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { useRequiredHousehold } from '../../hooks/useHousehold'
+import { SHARED_UID } from '../../lib/defaults'
 import { fmtDate, fromInputDate, money, parseAmount, toInputDate } from '../../lib/format'
 import type { Income } from '../../types'
 import { addIncome, deleteIncome } from './api'
@@ -14,7 +15,8 @@ export function IncomeTab({ incomes, loading, onEdit }: { incomes: Income[]; loa
   const { household, incomeCategories, members } = useRequiredHousehold()
   const catById = useMemo(() => new Map(incomeCategories.map((c) => [c.id, c])), [incomeCategories])
   const total = incomes.reduce((s, i) => s + i.amount, 0)
-  const byMember = members.map((m) => ({ m, total: incomes.filter((i) => i.byUid === m.id).reduce((s, i) => s + i.amount, 0) }))
+  const shared = incomes.filter((i) => i.byUid === SHARED_UID).reduce((s, i) => s + i.amount, 0)
+  const byMember = members.map((m) => ({ m, total: incomes.filter((i) => i.byUid === m.id).reduce((s, i) => s + i.amount, 0) + shared / Math.max(members.length, 1) }))
 
   return (
     <div className="pb-28">
@@ -30,6 +32,7 @@ export function IncomeTab({ incomes, loading, onEdit }: { incomes: Income[]; loa
             ))}
           </div>
         )}
+        {shared > 0 && <p className="mt-1 text-xs text-muted">Incluye {money(shared)} compartidos, repartidos en partes iguales.</p>}
       </div>
 
       {loading ? (
@@ -113,8 +116,8 @@ function IncomeForm({ income, onClose }: { income: Income | null; onClose: () =>
       <Field label="Categoría">
         <CategoryPicker categories={incomeCategories} value={categoryId} onChange={setCategoryId} />
       </Field>
-      <Field label="De quién">
-        <MemberPicker value={byUid} onChange={setByUid} />
+      <Field label="De quién" hint={byUid === SHARED_UID ? 'Se cuenta la mitad para cada uno.' : undefined}>
+        <MemberPicker value={byUid} onChange={setByUid} allowShared />
       </Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Fecha">

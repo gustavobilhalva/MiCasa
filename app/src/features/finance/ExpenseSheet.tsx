@@ -4,7 +4,7 @@ import { Sheet } from '../../components/layout/Sheet'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { useRequiredHousehold } from '../../hooks/useHousehold'
-import { PAYMENT_METHODS } from '../../lib/defaults'
+import { PAYMENT_METHODS, SHARED_UID } from '../../lib/defaults'
 import { fromInputDate, money, parseAmount, toInputDate } from '../../lib/format'
 import { buildInstallmentPlan } from '../../lib/installments'
 import type { Expense, PaymentMethod } from '../../types'
@@ -84,8 +84,8 @@ function ExpenseForm({ expense, onClose }: { expense: Expense | null; onClose: (
         <CategoryPicker categories={expenseCategories} value={categoryId} onChange={setCategoryId} />
       </Field>
 
-      <Field label="Pagó">
-        <MemberPicker value={paidBy} onChange={setPaidBy} />
+      <Field label="Pagó" hint={paidBy === SHARED_UID ? 'Pagado entre los dos: no genera deuda en el balance.' : undefined}>
+        <MemberPicker value={paidBy} onChange={setPaidBy} allowShared />
       </Field>
 
       <Field label="Medio de pago">

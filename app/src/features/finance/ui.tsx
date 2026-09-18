@@ -1,5 +1,12 @@
 import type { ReactNode } from 'react'
 import { useRequiredHousehold } from '../../hooks/useHousehold'
+import { SHARED_UID } from '../../lib/defaults'
+
+export function SharedDot({ className = 'size-3' }: { className?: string }) {
+  const { members } = useRequiredHousehold()
+  const [a, b] = [members[0]?.color ?? '#999', members[1]?.color ?? members[0]?.color ?? '#999']
+  return <span className={`${className} rounded-full`} style={{ background: `linear-gradient(90deg, ${a} 50%, ${b} 50%)` }} />
+}
 
 export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
@@ -66,14 +73,28 @@ export function MemberPicker({
   value,
   onChange,
   allowNone,
+  allowShared,
 }: {
   value: string | null
   onChange: (uid: string | null) => void
   allowNone?: boolean
+  allowShared?: boolean
 }) {
   const { members } = useRequiredHousehold()
   return (
     <div className="flex flex-wrap gap-2">
+      {allowShared && members.length > 1 && (
+        <button
+          type="button"
+          onClick={() => onChange(SHARED_UID)}
+          className={`flex min-h-11 items-center gap-2 rounded-full border px-3 text-sm ${
+            value === SHARED_UID ? 'border-accent bg-accent/10' : 'border-line bg-card'
+          }`}
+        >
+          <SharedDot />
+          Los dos
+        </button>
+      )}
       {members.map((m) => (
         <button
           key={m.id}
@@ -106,6 +127,14 @@ export function MemberDot({ uid, size = 'sm' }: { uid?: string | null; size?: 's
   const { members } = useRequiredHousehold()
   const m = members.find((x) => x.id === uid)
   const cls = size === 'md' ? 'size-8 text-xs' : 'size-6 text-[10px]'
+  if (uid === SHARED_UID) {
+    const [a, b] = [members[0]?.color ?? '#999', members[1]?.color ?? '#999']
+    return (
+      <span className={`${cls} flex items-center justify-center rounded-full font-semibold text-white`} style={{ background: `linear-gradient(90deg, ${a} 50%, ${b} 50%)` }} title="Los dos">
+        2
+      </span>
+    )
+  }
   if (!m) return <span className={`${cls} flex items-center justify-center rounded-full border border-dashed border-line text-muted`}>?</span>
   return (
     <span

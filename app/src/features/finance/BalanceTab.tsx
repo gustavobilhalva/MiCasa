@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Button } from '../../components/ui/Button'
 import { useRequiredHousehold } from '../../hooks/useHousehold'
+import { SHARED_UID } from '../../lib/defaults'
 import { money } from '../../lib/format'
 import type { Expense } from '../../types'
 import { SETTLEMENT_CATEGORY_ID } from '../../lib/financeCategories'
@@ -22,7 +23,13 @@ export function BalanceTab({ month, expenses }: { month: string; expenses: Expen
     }
     for (const e of expenses) {
       if (e.imported) continue
-      paid.set(e.paidBy, (paid.get(e.paidBy) ?? 0) + e.amount)
+      if (e.paidBy === SHARED_UID) {
+        // pagado entre los dos: cada uno puso su parte según el reparto
+        const split = e.split ?? defaultSplit
+        for (const [uid, pct] of Object.entries(split)) paid.set(uid, (paid.get(uid) ?? 0) + (e.amount * pct) / 100)
+      } else {
+        paid.set(e.paidBy, (paid.get(e.paidBy) ?? 0) + e.amount)
+      }
       const split = e.split ?? defaultSplit
       for (const [uid, pct] of Object.entries(split)) {
         share.set(uid, (share.get(uid) ?? 0) + (e.amount * pct) / 100)

@@ -58,7 +58,7 @@ export interface Income {
   id: string
   amount: number
   categoryId: string
-  byUid: string
+  byUid: string // uid o SHARED_UID ('shared') cuando el ingreso es de los dos
   date: Timestamp
   note?: string
   createdAt: Timestamp
@@ -111,7 +111,7 @@ export interface Expense {
   id: string
   amount: number
   categoryId: string
-  paidBy: string
+  paidBy: string // uid o SHARED_UID ('shared') cuando lo pagaron entre los dos
   method: PaymentMethod
   cardId?: string
   date: Timestamp
