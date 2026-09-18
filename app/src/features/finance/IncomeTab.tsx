@@ -48,7 +48,10 @@ export function IncomeTab({ incomes, loading, onEdit }: { incomes: Income[]; loa
                     {categoryLabel(cat)}
                     {i.note && <span className="ml-2 text-sm text-muted">{i.note}</span>}
                   </p>
-                  <p className="text-xs text-muted">{fmtDate(i.date.toDate(), 'd MMM')}</p>
+                  <p className="text-xs text-muted">
+                    {fmtDate(i.date.toDate(), 'd MMM')}
+                    {i.note?.startsWith('Importado') && ' · Planilla'}
+                  </p>
                 </button>
                 <span className="font-medium text-ok">+{money(i.amount)}</span>
                 <MemberDot uid={i.byUid} />
@@ -125,6 +128,11 @@ function IncomeForm({ income, onClose }: { income: Income | null; onClose: () =>
       <Button type="submit" disabled={busy}>
         {busy ? 'Guardando…' : income ? 'Guardar cambios' : 'Guardar ingreso'}
       </Button>
+      {income && (
+        <Button type="button" variant="ghost" className="text-danger" onClick={() => confirm('¿Eliminar este ingreso?') && deleteIncome(household.id, income.id).then(onClose)}>
+          Eliminar ingreso
+        </Button>
+      )}
     </form>
   )
 }
