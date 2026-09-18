@@ -5,7 +5,7 @@ import type { Expense, Income } from '../../types'
 import { useExpensesYear, useIncomesYear } from './hooks'
 import { ProgressBar } from './ui'
 
-export function SummaryTab({ month, expenses, incomes }: { month: string; expenses: Expense[]; incomes: Income[] }) {
+export function SummaryTab({ month, expenses, incomes, pendingEstimate = 0, pendingCount = 0 }: { month: string; expenses: Expense[]; incomes: Income[]; pendingEstimate?: number; pendingCount?: number }) {
   const { expenseCategories } = useRequiredHousehold()
   const year = Number(month.split('-')[0])
   const { data: yearExpenses } = useExpensesYear(year)
@@ -53,6 +53,12 @@ export function SummaryTab({ month, expenses, incomes }: { month: string; expens
         <Stat label="Gastos" value={money(monthExpense)} tone="text-danger" />
         <Stat label="Ahorro" value={money(net)} tone={net >= 0 ? 'text-ok' : 'text-danger'} sub={monthIncome > 0 ? `${Math.round(savingsPct)}%` : undefined} />
       </section>
+      {pendingCount > 0 && (
+        <p className="rounded-xl border border-dashed border-warn/60 bg-warn/10 px-4 py-2 text-sm">
+          Faltan pagar {pendingCount} recurrente{pendingCount === 1 ? '' : 's'} (~{money(pendingEstimate)}). Si se pagan todos: gastos {money(monthExpense + pendingEstimate)}, ahorro{' '}
+          <strong className={monthIncome - monthExpense - pendingEstimate >= 0 ? 'text-ok' : 'text-danger'}>{money(monthIncome - monthExpense - pendingEstimate)}</strong>.
+        </p>
+      )}
       {monthIncome > 0 && (
         <div>
           <ProgressBar value={monthExpense} max={monthIncome} danger={monthExpense > monthIncome} />

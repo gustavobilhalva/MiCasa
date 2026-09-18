@@ -1,20 +1,20 @@
-import { CreditCard, PiggyBank, Plus, Receipt, Trash2, TrendingUp, Wallet } from 'lucide-react'
+import { CreditCard, PiggyBank, Plus, Repeat, Trash2, TrendingUp, Wallet } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Sheet } from '../../components/layout/Sheet'
 import { TopBar } from '../../components/layout/TopBar'
 import { useRequiredHousehold } from '../../hooks/useHousehold'
 import { PAYMENT_METHODS } from '../../lib/defaults'
 import { fmtDate, money, monthKey, monthLabel, shiftMonth } from '../../lib/format'
 import { ensureFinanceCategories } from '../../lib/household'
-import type { Expense, Income } from '../../types'
+import type { Expense, Income, Service, ServiceInstance } from '../../types'
 import { deleteExpense } from './api'
 import { BalanceTab } from './BalanceTab'
 import { BudgetTab } from './BudgetTab'
 import { categoryLabel } from './CategoryPicker'
 import { ExpenseSheet } from './ExpenseSheet'
 import { ExpensesByCategory } from './ExpensesByCategory'
-import { useExpenses, useIncomes } from './hooks'
+import { useExpenses, useIncomes, useServiceInstances, useServices } from './hooks'
 import { IncomeSheet, IncomeTab } from './IncomeTab'
 import { SummaryTab } from './SummaryTab'
 import { MemberDot, MonthNav } from './ui'
@@ -32,6 +32,7 @@ const TABS: [Tab, string][] = [
 export function FinancePage() {
   const { household } = useRequiredHousehold()
   const [params, setParams] = useSearchParams()
+  const navigate = useNavigate()
   const [month, setMonth] = useState(monthKey(new Date()))
   const [tab, setTab] = useState<Tab>((params.get('tab') as Tab) || 'summary')
   const [sheet, setSheet] = useState<'expense' | 'income' | null>(params.get('nuevo') === '1' ? 'expense' : null)
@@ -40,6 +41,13 @@ export function FinancePage() {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
   const { data: expenses, loading } = useExpenses(month)
   const { data: incomes, loading: loadingIncomes } = useIncomes(month)
+  const { data: services } = useServices()
+  const { data: instances } = useServiceInstances(month)
+  const pendingRecurring = useMemo(() => {
+    const byId = new Map(services.map((s) => [s.id, s]))
+    return instances.filter((i) => i.status === 'pending').map((i) => ({ instance: i, service: byId.get(i.serviceId)! })).filter((r) => r.service)
+  }, [services, instances])
+  const pendingEstimate = pendingRecurring.reduce((s, r) => s + (r.service.estimatedAmount ?? 0), 0)
 
   useEffect(() => {
     ensureFinanceCategories(household.id)
@@ -58,7 +66,7 @@ export function FinancePage() {
     <>
       <TopBar title="Finanzas" />
       <div className="flex gap-2 overflow-x-auto px-4 py-3">
-        <QuickLink to="/gastos/servicios" icon={<Receipt size={16} />} label="Servicios" />
+        <QuickLink to="/gastos/servicios" icon={<Repeat size={16} />} label="Recurrentes (luz, colegio, limpieza…)" />
         <QuickLink to="/gastos/cuotas" icon={<CreditCard size={16} />} label="Cuotas y tarjetas" />
         <QuickLink to="/gastos/fondos" icon={<PiggyBank size={16} />} label="Fondos" />
       </div>
@@ -79,8 +87,10 @@ export function FinancePage() {
         ))}
       </div>
 
-      {tab === 'summary' && <SummaryTab month={month} expenses={expenses} incomes={incomes} />}
-      {tab === 'expenses' && <MovesTab expenses={expenses} loading={loading} total={total} onEdit={(e) => { setEditingExpense(e); setSheet('expense') }} />}
+      {tab === 'summary' && <SummaryTab month={month} expenses={expenses} incomes={incomes} pendingEstimate={pendingEstimate} pendingCount={pendingRecurring.length} />}
+      {tab === 'expenses' && (
+        <MovesTab expenses={expenses} loading={loading} total={total} onEdit={(e) => { setEditingExpense(e); setSheet('expense') }} pending={pendingRecurring} pendingEstimate={pendingEstimate} />
+      )}
       {tab === 'incomes' && <IncomeTab incomes={incomes} loading={loadingIncomes} onEdit={(i) => { setEditingIncome(i); setSheet('income') }} />}
       {tab === 'budget' && <BudgetTab month={month} expenses={expenses} />}
       {tab === 'balance' && <BalanceTab month={month} expenses={expenses} />}
@@ -94,7 +104,7 @@ export function FinancePage() {
       </button>
 
       <Sheet open={menu} onClose={() => setMenu(false)} title="¿Qué querés cargar?">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           <button onClick={() => { setMenu(false); setSheet('expense') }} className="flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl border border-line bg-surface">
             <Wallet className="text-danger" />
             <span className="text-sm">Gasto</span>
@@ -103,7 +113,12 @@ export function FinancePage() {
             <TrendingUp className="text-ok" />
             <span className="text-sm">Ingreso</span>
           </button>
+          <button onClick={() => { setMenu(false); navigate('/gastos/servicios?nuevo=1') }} className="flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl border border-line bg-surface">
+            <Repeat className="text-accent" />
+            <span className="text-sm">Recurrente</span>
+          </button>
         </div>
+        <p className="mt-3 text-xs text-muted">Recurrente: luz, gas, expensas, colegio, limpieza, préstamos… se carga una vez y cada mes aparece para marcarlo pagado.</p>
       </Sheet>
 
       <ExpenseSheet open={sheet === 'expense'} onClose={closeSheet} expense={editingExpense} />
@@ -120,7 +135,7 @@ function QuickLink({ to, icon, label }: { to: string; icon: React.ReactNode; lab
   )
 }
 
-function MovesTab({ expenses, loading, total, onEdit }: { expenses: Expense[]; loading: boolean; total: number; onEdit: (e: Expense) => void }) {
+function MovesTab({ expenses, loading, total, onEdit, pending, pendingEstimate }: { expenses: Expense[]; loading: boolean; total: number; onEdit: (e: Expense) => void; pending: { instance: ServiceInstance; service: Service }[]; pendingEstimate: number }) {
   const { household, expenseCategories } = useRequiredHousehold()
   const [view, setView] = useState<'category' | 'date'>('category')
   const catById = useMemo(() => new Map(expenseCategories.map((c) => [c.id, c])), [expenseCategories])
@@ -151,6 +166,17 @@ function MovesTab({ expenses, loading, total, onEdit }: { expenses: Expense[]; l
           </button>
         </div>
       </div>
+
+      {pending.length > 0 && (
+        <Link to="/gastos/servicios" className="mx-4 mb-3 flex items-center gap-3 rounded-xl border border-dashed border-warn/60 bg-warn/10 px-4 py-3">
+          <Repeat size={18} className="text-warn" />
+          <span className="flex-1 text-sm">
+            <strong>{pending.length} recurrente{pending.length === 1 ? '' : 's'} sin pagar</strong>
+            <span className="text-muted"> · {pending.map((p) => p.service.name).slice(0, 4).join(', ')}{pending.length > 4 ? '…' : ''}</span>
+          </span>
+          <span className="text-sm font-medium">~{money(pendingEstimate)}</span>
+        </Link>
+      )}
 
       {loading ? (
         <p className="p-6 text-center text-muted">Cargando…</p>

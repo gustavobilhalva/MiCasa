@@ -1,7 +1,7 @@
 import { differenceInCalendarDays } from 'date-fns'
 import { ArrowLeft, Check, Plus } from 'lucide-react'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Sheet } from '../../components/layout/Sheet'
 import { TopBar } from '../../components/layout/TopBar'
 import { Button } from '../../components/ui/Button'
@@ -20,7 +20,8 @@ export function ServicesPage() {
   const { data: services, loading: loadingServices } = useServices()
   const [period, setPeriod] = useState(monthKey(new Date()))
   const { data: instances, loading: loadingInstances } = useServiceInstances(period)
-  const [editing, setEditing] = useState<Service | null | 'new'>(null)
+  const [params] = useSearchParams()
+  const [editing, setEditing] = useState<Service | null | 'new'>(params.get('nuevo') === '1' ? 'new' : null)
   const [paying, setPaying] = useState<{ instance: ServiceInstance; service: Service } | null>(null)
 
   useEffect(() => {
@@ -52,10 +53,10 @@ export function ServicesPage() {
   return (
     <>
       <TopBar
-        title="Servicios"
+        title="Gastos recurrentes"
         right={
           <Link to="/gastos" className="flex min-h-10 items-center gap-1 text-sm text-muted">
-            <ArrowLeft size={16} /> Gastos
+            <ArrowLeft size={16} /> Finanzas
           </Link>
         }
       />
@@ -64,8 +65,8 @@ export function ServicesPage() {
       <main className="pb-28">
         {services.length === 0 && !loadingServices ? (
           <div className="px-6 py-12 text-center">
-            <p className="font-medium">Sin servicios cargados</p>
-            <p className="mt-1 text-sm text-muted">Agregá expensas, luz, gas, internet, colegio… con su día de vencimiento y quién lo paga.</p>
+            <p className="font-medium">Sin gastos recurrentes</p>
+            <p className="mt-1 text-sm text-muted">Luz, gas, internet, expensas, colegio, la persona que limpia, préstamos… Se cargan una vez con su día de vencimiento y cada mes aparecen para marcarlos como pagados; al pagarlos se registran como gasto en su categoría.</p>
           </div>
         ) : (
           <>
@@ -131,7 +132,7 @@ export function ServicesPage() {
         <Plus size={28} />
       </button>
 
-      <Sheet open={editing !== null} onClose={() => setEditing(null)} title={editing === 'new' ? 'Nuevo servicio' : 'Editar servicio'}>
+      <Sheet open={editing !== null} onClose={() => setEditing(null)} title={editing === 'new' ? 'Nuevo gasto recurrente' : 'Editar gasto recurrente'}>
         {editing !== null && (
           <ServiceForm
             service={editing === 'new' ? null : editing}
@@ -194,7 +195,7 @@ function ServiceForm({ service, instance, onClose }: { service: Service | null; 
   return (
     <form onSubmit={submit} className="flex flex-col gap-4">
       <Field label="Nombre">
-        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Expensas, Luz, Netflix…" required autoFocus />
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Luz, Expensas, Limpieza, Colegio…" required autoFocus />
       </Field>
       <Field label="Tipo">
         <Chips options={SERVICE_TYPES as { id: ServiceType; label: string }[]} value={type} onChange={setType} />
@@ -243,7 +244,7 @@ function ServiceForm({ service, instance, onClose }: { service: Service | null; 
             </Button>
           )}
           <Button type="button" variant="ghost" className="text-danger" onClick={() => deleteService(household.id, service.id).then(onClose)}>
-            Dar de baja el servicio
+            Dar de baja (deja de generarse cada mes)
           </Button>
         </>
       )}

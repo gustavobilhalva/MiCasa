@@ -138,7 +138,7 @@ export interface Installment {
   label: string
 }
 
-export type ServiceType = 'utility' | 'rent' | 'subscription' | 'insurance' | 'education' | 'other'
+export type ServiceType = 'utility' | 'rent' | 'subscription' | 'insurance' | 'education' | 'staff' | 'loan' | 'other'
 export type ServiceFrequency = 'monthly' | 'bimonthly' | 'annual'
 
 export interface Service {
