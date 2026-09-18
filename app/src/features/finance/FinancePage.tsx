@@ -9,7 +9,6 @@ import { fmtDate, money, monthKey, monthLabel, shiftMonth } from '../../lib/form
 import { ensureFinanceCategories } from '../../lib/household'
 import type { Expense, Income, Service, ServiceInstance } from '../../types'
 import { deleteExpense } from './api'
-import { BalanceTab } from './BalanceTab'
 import { BudgetTab } from './BudgetTab'
 import { categoryLabel } from './CategoryPicker'
 import { ExpenseSheet } from './ExpenseSheet'
@@ -19,14 +18,13 @@ import { IncomeSheet, IncomeTab } from './IncomeTab'
 import { SummaryTab } from './SummaryTab'
 import { MemberDot, MonthNav } from './ui'
 
-type Tab = 'summary' | 'expenses' | 'incomes' | 'budget' | 'balance'
+type Tab = 'summary' | 'expenses' | 'incomes' | 'budget'
 
 const TABS: [Tab, string][] = [
   ['summary', 'Resumen'],
   ['expenses', 'Gastos'],
   ['incomes', 'Ingresos'],
   ['budget', 'Presupuesto'],
-  ['balance', 'Balance'],
 ]
 
 export function FinancePage() {
@@ -93,7 +91,6 @@ export function FinancePage() {
       )}
       {tab === 'incomes' && <IncomeTab incomes={incomes} loading={loadingIncomes} onEdit={(i) => { setEditingIncome(i); setSheet('income') }} />}
       {tab === 'budget' && <BudgetTab month={month} expenses={expenses} />}
-      {tab === 'balance' && <BalanceTab month={month} expenses={expenses} />}
 
       <button
         onClick={() => (tab === 'incomes' ? setSheet('income') : tab === 'expenses' ? setSheet('expense') : setMenu(true))}

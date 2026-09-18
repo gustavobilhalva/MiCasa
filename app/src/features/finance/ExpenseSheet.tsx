@@ -84,7 +84,7 @@ function ExpenseForm({ expense, onClose }: { expense: Expense | null; onClose: (
         <CategoryPicker categories={expenseCategories} value={categoryId} onChange={setCategoryId} />
       </Field>
 
-      <Field label="Pagó" hint={paidBy === SHARED_UID ? 'Pagado entre los dos: no genera deuda en el balance.' : undefined}>
+      <Field label="Pagó" hint={paidBy === SHARED_UID ? 'Pagado entre los dos, mitad cada uno.' : undefined}>
         <MemberPicker value={paidBy} onChange={setPaidBy} allowShared />
       </Field>
 

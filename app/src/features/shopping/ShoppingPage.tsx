@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { TopBar } from '../../components/layout/TopBar'
 import { useRequiredHousehold } from '../../hooks/useHousehold'
+import { FoodSwitch } from '../meals/FoodSwitch'
 import { AddItemSheet } from './AddItemSheet'
 import { archiveChecked } from './api'
 import { PantryTab } from '../meals/PantryTab'
@@ -24,21 +25,21 @@ export function ShoppingPage() {
   return (
     <>
       <TopBar
-        title="Súper"
+        title={<FoodSwitch />}
         right={
-          <>
-            <Tabs value={tab} onChange={setTab} />
-            {tab === 'list' && pendingCount > 0 && (
-              <Link
-                to="/super/modo-compra"
-                className="flex min-h-10 items-center gap-1.5 rounded-full bg-accent/10 px-3 text-sm font-medium text-accent"
-              >
-                <ShoppingBag size={16} /> <span className="hidden sm:inline">Modo compra</span>
-              </Link>
-            )}
-          </>
+          tab === 'list' && pendingCount > 0 ? (
+            <Link
+              to="/super/modo-compra"
+              className="flex min-h-10 items-center gap-1.5 rounded-full bg-accent/10 px-3 text-sm font-medium text-accent"
+            >
+              <ShoppingBag size={16} /> Modo compra
+            </Link>
+          ) : undefined
         }
       />
+      <div className="flex px-4 py-2">
+        <Tabs value={tab} onChange={setTab} />
+      </div>
 
       {tab === 'catalog' ? (
         <CatalogTab products={products} />

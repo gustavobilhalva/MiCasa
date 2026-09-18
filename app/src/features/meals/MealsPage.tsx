@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Sheet } from '../../components/layout/Sheet'
 import { TopBar } from '../../components/layout/TopBar'
+import { FoodSwitch } from './FoodSwitch'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { useRequiredHousehold } from '../../hooks/useHousehold'
@@ -72,7 +73,7 @@ export function MealsPage() {
   return (
     <>
       <TopBar
-        title="Menús"
+        title={<FoodSwitch />}
         right={
           <Link to="/menus/recetas" className="flex min-h-10 items-center gap-1 rounded-full bg-accent/10 px-3 text-sm font-medium text-accent">
             <BookOpen size={16} /> Recetas

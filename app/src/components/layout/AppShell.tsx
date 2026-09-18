@@ -1,15 +1,14 @@
-import { Baby, Calendar, FileText, Home, House, NotebookPen, PawPrint, Settings, ShoppingCart, UtensilsCrossed, Wallet } from 'lucide-react'
+import { Baby, Calendar, FileText, Home, House, NotebookPen, PawPrint, Settings, UtensilsCrossed, Wallet } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { listenForegroundMessages } from '../../lib/messaging'
 
-const NAV = [
+const NAV: { to: string; label: string; icon: typeof Home; end?: boolean; also?: string[] }[] = [
   { to: '/', label: 'Hoy', icon: Home, end: true },
-  { to: '/super', label: 'Súper', icon: ShoppingCart },
+  { to: '/super', label: 'Comidas', icon: UtensilsCrossed, also: ['/menus'] },
   { to: '/gastos', label: 'Finanzas', icon: Wallet },
   { to: '/agenda', label: 'Agenda', icon: Calendar },
   { to: '/notas', label: 'Notas', icon: NotebookPen },
-  { to: '/menus', label: 'Menús', icon: UtensilsCrossed },
   { to: '/familia', label: 'Familia', icon: Baby },
   { to: '/mascotas', label: 'Mascotas', icon: PawPrint },
   { to: '/tramites', label: 'Trámites', icon: FileText },
@@ -45,14 +44,14 @@ export function AppShell() {
         aria-label="Principal"
         className="order-last flex shrink-0 overflow-x-auto border-t border-line bg-card pb-[env(safe-area-inset-bottom)] [scrollbar-width:none] md:order-first md:w-56 md:flex-col md:overflow-y-auto md:border-r md:border-t-0 md:pt-6 [&::-webkit-scrollbar]:hidden"
       >
-        {NAV.map(({ to, label, icon: Icon, end }) => (
+        {NAV.map(({ to, label, icon: Icon, end, also }) => (
           <NavLink
             key={to}
             to={to}
             end={end}
             className={({ isActive }) =>
               `flex min-h-14 min-w-[4.5rem] shrink-0 flex-col items-center justify-center gap-0.5 px-1 text-[11px] md:min-w-0 md:flex-row md:justify-start md:gap-3 md:px-6 md:text-base ${
-                isActive ? 'text-accent' : 'text-muted'
+                isActive || also?.some((p) => location.pathname.startsWith(p)) ? 'text-accent' : 'text-muted'
               }`
             }
           >
