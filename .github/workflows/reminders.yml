@@ -1,0 +1,35 @@
+name: Recordatorios
+
+on:
+  schedule:
+    # 12:00 UTC = 09:00 Argentina; 21:00 UTC = 18:00 Argentina
+    - cron: '0 12 * * *'
+    - cron: '0 21 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Solo listar, sin enviar'
+        type: boolean
+        default: false
+
+jobs:
+  reminders:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: jobs/package-lock.json
+      - run: npm ci
+        working-directory: jobs
+      - run: npm run reminders
+        working-directory: jobs
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          APP_URL: https://nuestra-casa-2cb72.web.app
+          DRY_RUN: ${{ inputs.dry_run && '1' || '0' }}

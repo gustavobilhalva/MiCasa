@@ -1,0 +1,70 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function uid() {
+      return request.auth.uid;
+    }
+
+    function household(hid) {
+      return get(/databases/$(database)/documents/households/$(hid)).data;
+    }
+
+    function isMember(hid) {
+      return signedIn() && uid() in household(hid).memberIds;
+    }
+
+    // Para escrituras en subcolecciones: getAfter ve el hogar tal como queda tras el batch,
+    // lo que permite crear hogar + categorías + miembro en una sola operación atómica.
+    function isMemberAfter(hid) {
+      return signedIn()
+        && uid() in getAfter(/databases/$(database)/documents/households/$(hid)).data.memberIds;
+    }
+
+    // Unirse a un hogar sin Cloud Functions:
+    // 1) el usuario reclama invites/{code} (usedBy = uid) — conocer el código es la prueba
+    // 2) escribe users/{uid}.pendingInvite = code
+    // 3) actualiza households/{hid}.memberIds agregándose a sí mismo; esta regla verifica 1 y 2
+    function isJoiningWithInvite(hid) {
+      let code = get(/databases/$(database)/documents/users/$(uid())).data.pendingInvite;
+      let invite = get(/databases/$(database)/documents/invites/$(code)).data;
+      return invite.householdId == hid
+        && invite.usedBy == uid()
+        && invite.expiresAt > request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberIds', 'updatedAt'])
+        && request.resource.data.memberIds == resource.data.memberIds.concat([uid()]);
+    }
+
+    match /users/{userId} {
+      allow read, write: if signedIn() && uid() == userId;
+    }
+
+    match /invites/{code} {
+      allow read: if signedIn();
+      allow create: if isMember(request.resource.data.householdId)
+        && request.resource.data.usedBy == null;
+      allow update: if signedIn()
+        && resource.data.usedBy == null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usedBy'])
+        && request.resource.data.usedBy == uid();
+      allow delete: if isMember(resource.data.householdId);
+    }
+
+    match /households/{hid} {
+      allow create: if signedIn()
+        && request.resource.data.memberIds == [uid()];
+      allow read: if isMember(hid);
+      allow update: if isMember(hid) || (signedIn() && isJoiningWithInvite(hid));
+      allow delete: if false;
+
+      match /{collection}/{doc=**} {
+        allow read: if isMember(hid);
+        allow write: if isMemberAfter(hid);
+      }
+    }
+  }
+}
