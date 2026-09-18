@@ -7,32 +7,32 @@ import { useRequiredHousehold } from '../../hooks/useHousehold'
 import { PAYMENT_METHODS } from '../../lib/defaults'
 import { fromInputDate, money, parseAmount, toInputDate } from '../../lib/format'
 import { buildInstallmentPlan } from '../../lib/installments'
-import type { PaymentMethod } from '../../types'
-import { addExpense } from './api'
+import type { Expense, PaymentMethod } from '../../types'
+import { addExpense, deleteExpense, updateExpense } from './api'
 import { CategoryPicker } from './CategoryPicker'
 import { useCards } from './hooks'
 import { AmountInput, Chips, Field, MemberPicker } from './ui'
 
-export function ExpenseSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function ExpenseSheet({ open, onClose, expense }: { open: boolean; onClose: () => void; expense?: Expense | null }) {
   return (
-    <Sheet open={open} onClose={onClose} title="Cargar gasto">
-      {open && <ExpenseForm onClose={onClose} />}
+    <Sheet open={open} onClose={onClose} title={expense ? 'Editar gasto' : 'Cargar gasto'}>
+      {open && <ExpenseForm key={expense?.id ?? 'new'} expense={expense ?? null} onClose={onClose} />}
     </Sheet>
   )
 }
 
-function ExpenseForm({ onClose }: { onClose: () => void }) {
+function ExpenseForm({ expense, onClose }: { expense: Expense | null; onClose: () => void }) {
   const { household, user, expenseCategories } = useRequiredHousehold()
   const { data: cards } = useCards()
-  const [amount, setAmount] = useState('')
-  const [categoryId, setCategoryId] = useState<string | null>(null)
-  const [paidBy, setPaidBy] = useState<string | null>(user.uid)
-  const [method, setMethod] = useState<PaymentMethod>('debit')
-  const [cardId, setCardId] = useState<string | null>(cards[0]?.id ?? null)
-  const [installments, setInstallments] = useState('1')
-  const [surcharge, setSurcharge] = useState(String(household.settings.installmentSurchargePct ?? 0))
-  const [date, setDate] = useState(toInputDate(new Date()))
-  const [note, setNote] = useState('')
+  const [amount, setAmount] = useState(expense ? String(expense.amount) : '')
+  const [categoryId, setCategoryId] = useState<string | null>(expense?.categoryId ?? null)
+  const [paidBy, setPaidBy] = useState<string | null>(expense?.paidBy ?? user.uid)
+  const [method, setMethod] = useState<PaymentMethod>(expense?.method ?? 'debit')
+  const [cardId, setCardId] = useState<string | null>(expense?.cardId ?? cards[0]?.id ?? null)
+  const [installments, setInstallments] = useState(String(expense?.installments?.count ?? 1))
+  const [surcharge, setSurcharge] = useState(String(expense?.installments?.surchargePct ?? household.settings.installmentSurchargePct ?? 0))
+  const [date, setDate] = useState(toInputDate(expense?.date.toDate() ?? new Date()))
+  const [note, setNote] = useState(expense?.note ?? '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -55,7 +55,7 @@ function ExpenseForm({ onClose }: { onClose: () => void }) {
     setBusy(true)
     setError(null)
     try {
-      await addExpense(household.id, user.uid, {
+      const input = {
         amount: parsedAmount,
         categoryId,
         paidBy,
@@ -65,7 +65,9 @@ function ExpenseForm({ onClose }: { onClose: () => void }) {
         surchargePct,
         date: fromInputDate(date),
         note: note.trim() || undefined,
-      })
+      }
+      if (expense) await updateExpense(household.id, user.uid, expense.id, input)
+      else await addExpense(household.id, user.uid, input)
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar')
@@ -134,8 +136,13 @@ function ExpenseForm({ onClose }: { onClose: () => void }) {
 
       {error && <p className="text-sm text-danger">{error}</p>}
       <Button type="submit" disabled={busy}>
-        {busy ? 'Guardando…' : 'Guardar gasto'}
+        {busy ? 'Guardando…' : expense ? 'Guardar cambios' : 'Guardar gasto'}
       </Button>
+      {expense && (
+        <Button type="button" variant="ghost" className="text-danger" onClick={() => confirm('¿Eliminar este gasto?') && deleteExpense(household.id, expense.id).then(onClose)}>
+          Eliminar gasto
+        </Button>
+      )}
     </form>
   )
 }

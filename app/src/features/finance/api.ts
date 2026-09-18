@@ -108,6 +108,58 @@ export async function addExpense(householdId: string, uid: string, input: Expens
   return expenseRef.id
 }
 
+export async function updateExpense(householdId: string, uid: string, expenseId: string, input: ExpenseInput) {
+  const batch = writeBatch(db)
+  const now = serverTimestamp()
+  const expenseRef = doc(hh(householdId), 'expenses', expenseId)
+  const isInstallments = input.method === 'credit' && input.card && (input.installmentCount ?? 1) > 1
+  const count = input.installmentCount ?? 1
+  const surchargePct = input.surchargePct ?? 0
+
+  batch.update(expenseRef, {
+    amount: input.amount,
+    categoryId: input.categoryId,
+    paidBy: input.paidBy,
+    method: input.method,
+    cardId: input.card?.id ?? deleteField(),
+    date: Timestamp.fromDate(input.date),
+    note: input.note ?? deleteField(),
+    installments: isInstallments ? { count, surchargePct, totalWithSurcharge: totalWithSurcharge(input.amount, surchargePct) } : deleteField(),
+    updatedAt: now,
+  })
+
+  const old = await getDocs(query(collection(hh(householdId), 'installments'), where('expenseId', '==', expenseId)))
+  old.docs.forEach((d) => batch.delete(d.ref))
+  if (input.method === 'credit' && input.card) {
+    const plan = buildInstallmentPlan({
+      total: input.amount,
+      count: isInstallments ? count : 1,
+      surchargePct: isInstallments ? surchargePct : 0,
+      purchaseDate: input.date,
+      closingDay: input.card.closingDay,
+      dueDay: input.card.dueDay,
+    })
+    const label = input.label ?? input.note ?? 'Compra'
+    for (const item of plan) {
+      batch.set(doc(collection(hh(householdId), 'installments')), {
+        expenseId,
+        cardId: input.card.id,
+        number: item.number,
+        count: plan.length,
+        amount: item.amount,
+        statementMonth: item.statementMonth,
+        dueDate: Timestamp.fromDate(item.dueDate),
+        paid: false,
+        label,
+        createdBy: uid,
+        createdAt: now,
+        updatedAt: now,
+      })
+    }
+  }
+  await batch.commit()
+}
+
 export async function deleteExpense(householdId: string, expenseId: string) {
   const batch = writeBatch(db)
   const inst = await getDocs(query(collection(hh(householdId), 'installments'), where('expenseId', '==', expenseId)))

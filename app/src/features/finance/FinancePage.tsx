@@ -36,6 +36,7 @@ export function FinancePage() {
   const [sheet, setSheet] = useState<'expense' | 'income' | null>(params.get('nuevo') === '1' ? 'expense' : null)
   const [menu, setMenu] = useState(false)
   const [editingIncome, setEditingIncome] = useState<Income | null>(null)
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
   const { data: expenses, loading } = useExpenses(month)
   const { data: incomes, loading: loadingIncomes } = useIncomes(month)
 
@@ -46,6 +47,7 @@ export function FinancePage() {
   const closeSheet = () => {
     setSheet(null)
     setEditingIncome(null)
+    setEditingExpense(null)
     if (params.has('nuevo')) setParams({}, { replace: true })
   }
 
@@ -77,7 +79,7 @@ export function FinancePage() {
       </div>
 
       {tab === 'summary' && <SummaryTab month={month} expenses={expenses} incomes={incomes} />}
-      {tab === 'expenses' && <MovesTab expenses={expenses} loading={loading} total={total} />}
+      {tab === 'expenses' && <MovesTab expenses={expenses} loading={loading} total={total} onEdit={(e) => { setEditingExpense(e); setSheet('expense') }} />}
       {tab === 'incomes' && <IncomeTab incomes={incomes} loading={loadingIncomes} onEdit={(i) => { setEditingIncome(i); setSheet('income') }} />}
       {tab === 'budget' && <BudgetTab month={month} expenses={expenses} />}
       {tab === 'balance' && <BalanceTab month={month} expenses={expenses} />}
@@ -103,7 +105,7 @@ export function FinancePage() {
         </div>
       </Sheet>
 
-      <ExpenseSheet open={sheet === 'expense'} onClose={closeSheet} />
+      <ExpenseSheet open={sheet === 'expense'} onClose={closeSheet} expense={editingExpense} />
       <IncomeSheet open={sheet === 'income'} onClose={closeSheet} income={editingIncome} />
     </>
   )
@@ -117,7 +119,7 @@ function QuickLink({ to, icon, label }: { to: string; icon: React.ReactNode; lab
   )
 }
 
-function MovesTab({ expenses, loading, total }: { expenses: Expense[]; loading: boolean; total: number }) {
+function MovesTab({ expenses, loading, total, onEdit }: { expenses: Expense[]; loading: boolean; total: number; onEdit: (e: Expense) => void }) {
   const { household, expenseCategories } = useRequiredHousehold()
   const catById = useMemo(() => new Map(expenseCategories.map((c) => [c.id, c])), [expenseCategories])
   const methodLabel = (id: string) => PAYMENT_METHODS.find((m) => m.id === id)?.label ?? id
@@ -152,7 +154,7 @@ function MovesTab({ expenses, loading, total }: { expenses: Expense[]; loading: 
                 return (
                   <li key={e.id} className="flex min-h-14 items-center gap-3 px-4">
                     <span className="text-xl">{cat?.icon ?? '💸'}</span>
-                    <div className="flex-1">
+                    <button onClick={() => onEdit(e)} className="flex-1 py-2 text-left">
                       <p>
                         {e.settlement ? 'Ajuste' : categoryLabel(cat)}
                         {e.note && <span className="ml-2 text-sm text-muted">{e.note}</span>}
@@ -160,8 +162,10 @@ function MovesTab({ expenses, loading, total }: { expenses: Expense[]; loading: 
                       <p className="text-xs text-muted">
                         {e.imported ? 'Planilla' : methodLabel(e.method)}
                         {e.installments && ` · ${e.installments.count} cuotas`}
+                        {' · '}
+                        {fmtDate(e.date.toDate(), 'd MMM')}
                       </p>
-                    </div>
+                    </button>
                     <span className="font-medium">{money(e.amount)}</span>
                     <MemberDot uid={e.paidBy} />
                     <button
