@@ -13,6 +13,7 @@ import { BalanceTab } from './BalanceTab'
 import { BudgetTab } from './BudgetTab'
 import { categoryLabel } from './CategoryPicker'
 import { ExpenseSheet } from './ExpenseSheet'
+import { ExpensesByCategory } from './ExpensesByCategory'
 import { useExpenses, useIncomes } from './hooks'
 import { IncomeSheet, IncomeTab } from './IncomeTab'
 import { SummaryTab } from './SummaryTab'
@@ -121,6 +122,7 @@ function QuickLink({ to, icon, label }: { to: string; icon: React.ReactNode; lab
 
 function MovesTab({ expenses, loading, total, onEdit }: { expenses: Expense[]; loading: boolean; total: number; onEdit: (e: Expense) => void }) {
   const { household, expenseCategories } = useRequiredHousehold()
+  const [view, setView] = useState<'category' | 'date'>('category')
   const catById = useMemo(() => new Map(expenseCategories.map((c) => [c.id, c])), [expenseCategories])
   const methodLabel = (id: string) => PAYMENT_METHODS.find((m) => m.id === id)?.label ?? id
 
@@ -135,13 +137,25 @@ function MovesTab({ expenses, loading, total, onEdit }: { expenses: Expense[]; l
 
   return (
     <div className="pb-28">
-      <div className="mx-4 mb-3 rounded-xl border border-line bg-card p-4">
-        <p className="text-sm text-muted">Gastos del mes</p>
-        <p className="text-3xl font-semibold">{money(total)}</p>
+      <div className="mx-4 mb-3 flex items-center justify-between rounded-xl border border-line bg-card p-4">
+        <div>
+          <p className="text-sm text-muted">Gastos del mes</p>
+          <p className="text-3xl font-semibold">{money(total)}</p>
+        </div>
+        <div role="tablist" className="flex rounded-full border border-line p-0.5 text-xs">
+          <button role="tab" aria-selected={view === 'category'} onClick={() => setView('category')} className={`min-h-8 rounded-full px-2.5 ${view === 'category' ? 'bg-accent text-white' : 'text-muted'}`}>
+            Por categoría
+          </button>
+          <button role="tab" aria-selected={view === 'date'} onClick={() => setView('date')} className={`min-h-8 rounded-full px-2.5 ${view === 'date' ? 'bg-accent text-white' : 'text-muted'}`}>
+            Por fecha
+          </button>
+        </div>
       </div>
 
       {loading ? (
         <p className="p-6 text-center text-muted">Cargando…</p>
+      ) : view === 'category' ? (
+        <ExpensesByCategory expenses={expenses} total={total} onEdit={onEdit} />
       ) : expenses.length === 0 ? (
         <p className="px-6 py-12 text-center text-sm text-muted">Sin gastos este mes. Tocá + para cargar el primero.</p>
       ) : (
